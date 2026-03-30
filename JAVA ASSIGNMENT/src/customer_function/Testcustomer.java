@@ -23,8 +23,10 @@ public class Testcustomer {
 
         System.out.println("\n=== Login Test ===");
         Customer login = dao.getCustomerByLogin("szeying@email.com", "123456");
+        String getId = dao.getIdByLogin("szeying@email.com", "123456");
         if (login != null) {
             System.out.println("Login Success! Welcome, " + login.getName());
+            System.out.println("Your ID is " + getId);
         } else {
             System.out.println("Login Failed!");
         }

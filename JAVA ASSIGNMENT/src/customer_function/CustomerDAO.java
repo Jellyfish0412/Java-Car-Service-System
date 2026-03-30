@@ -55,4 +55,13 @@ public class CustomerDAO {
         }
         return null;
     }
+
+    public String getIdByLogin(String email, String password) {
+        for (Customer x: getAllCustomers()) {
+            if (x.getEmail().equals(email) && x.getPassword().equals(password)) {
+                return x.getCustomerID();
+            }
+        }    
+        return null;
+    }
 }
