@@ -10,6 +10,7 @@ public class Appointment {
     private String technicianID;
     private String serviceItemID;
     private LocalDate appointmentDate;
+    private String serviceType;
     private String startTime;
     private String endTime;
     private String status;
@@ -21,7 +22,7 @@ public class Appointment {
     public Appointment(String appointmentID, String customerID, String staffID, String serviceTypeID, 
         String technicianID, String serviceItemID, LocalDate appointmentDate, String startTime, 
         String endTime, String status, String vehicleBrand, String vehicleModel, String vehiclePlate, 
-        String command) {
+        String command, String serviceType) {
 
         this.appointmentID = appointmentID;
         this.customerID = customerID;
@@ -30,6 +31,7 @@ public class Appointment {
         this.technicianID = technicianID;
         this.serviceItemID = serviceItemID;
         this.appointmentDate = appointmentDate;
+        this.serviceType = serviceType;
         this.startTime = startTime;
         this.endTime = endTime;
         this.status = status;
@@ -53,4 +55,5 @@ public class Appointment {
     public String getVehicleModel() {return vehicleModel;}
     public String getVehiclePlate() {return vehiclePlate;}
     public String getCommand() {return command;}
+    public String getServiceType() {return serviceType;}
 }
