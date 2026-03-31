@@ -12,7 +12,6 @@ public class CustomerPortal extends JFrame {
     private JPanel contentPanel;
     private JButton activeButton = null;
 
-    // temporary hardcoded customer ID
     private String customerID = "C001";
 
     private CustomerDAO customerDAO = new CustomerDAO();
@@ -23,13 +22,12 @@ public class CustomerPortal extends JFrame {
     private Appointment upcoming;
 
     public CustomerPortal() {
-        // 先拿数据
         customer = customerDAO.getCustomerByID(customerID);
         upcoming = appointmentDAO.getUpcomingAppointmentByCustomerID(customerID);
 
         setTitle("Automotive Service Centre – Customer Portal");
-        setSize(1050, 680);
-        setMinimumSize(new Dimension(900, 550));
+        setSize(1200, 800);
+        setMinimumSize(new Dimension(1000, 650));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
         setBackground(Color.WHITE);
@@ -66,7 +64,7 @@ public class CustomerPortal extends JFrame {
 
         contentPanel.add(createHomePage(), "home");
         contentPanel.add(placeholder("Our Service"), "ourService");
-        contentPanel.add(placeholder("Appointment & History"), "history");
+        contentPanel.add(createHistoryPage(), "history");
         contentPanel.add(placeholder("Make Appointment"), "makeAppointment");
         contentPanel.add(placeholder("Profile"), "profile");
 
@@ -76,28 +74,27 @@ public class CustomerPortal extends JFrame {
         return mainArea;
     }
 
+    // ─── HOME PAGE ───────────────────────────────────────────────────────────
+
     private JPanel createHomePage() {
         JPanel homePanel = new JPanel();
         homePanel.setLayout(new BoxLayout(homePanel, BoxLayout.Y_AXIS));
         homePanel.setBackground(new Color(248, 248, 250));
-        homePanel.setBorder(BorderFactory.createEmptyBorder(24, 28, 24, 28));
+        homePanel.setBorder(BorderFactory.createEmptyBorder(28, 32, 28, 32));
 
-        // Welcome label
         JLabel welcomeLabel = new JLabel("Welcome, " + (customer != null ? customer.getName() : ""));
-        welcomeLabel.setFont(new Font("Arial", Font.BOLD, 20));
+        welcomeLabel.setFont(new Font("Arial", Font.BOLD, 22));
         welcomeLabel.setForeground(new Color(20, 20, 100));
         welcomeLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         homePanel.add(welcomeLabel);
-        homePanel.add(Box.createRigidArea(new Dimension(0, 18)));
+        homePanel.add(Box.createRigidArea(new Dimension(0, 20)));
 
-        // ===== APPOINTMENT CARD =====
         JPanel card = new JPanel(new BorderLayout());
         card.setBackground(Color.WHITE);
         card.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
         card.setAlignmentX(Component.LEFT_ALIGNMENT);
-        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 280));
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 300));
 
-        // Card header
         JPanel cardHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 10));
         cardHeader.setBackground(new Color(20, 20, 100));
         JLabel cardTitle = new JLabel("Next Upcoming Appointment");
@@ -106,10 +103,9 @@ public class CustomerPortal extends JFrame {
         cardHeader.add(cardTitle);
         card.add(cardHeader, BorderLayout.NORTH);
 
-        // Card content
-        JPanel cardContent = new JPanel(new GridLayout(6, 2, 10, 8));
+        JPanel cardContent = new JPanel(new GridLayout(6, 2, 10, 10));
         cardContent.setBackground(Color.WHITE);
-        cardContent.setBorder(BorderFactory.createEmptyBorder(16, 20, 16, 20));
+        cardContent.setBorder(BorderFactory.createEmptyBorder(18, 24, 18, 24));
 
         if (upcoming != null) {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("EEEE, dd MMMM yyyy");
@@ -126,13 +122,13 @@ public class CustomerPortal extends JFrame {
             addCardRow(cardContent, "Status:", upcoming.getStatus());
         } else {
             JLabel noAppt = new JLabel("No upcoming appointment found.");
+            noAppt.setFont(new Font("Arial", Font.PLAIN, 13));
             noAppt.setForeground(Color.GRAY);
             cardContent.add(noAppt);
         }
 
         card.add(cardContent, BorderLayout.CENTER);
 
-        // Reminder
         JPanel reminderPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 8));
         reminderPanel.setBackground(new Color(255, 255, 220));
         reminderPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(220, 210, 100)));
@@ -142,10 +138,9 @@ public class CustomerPortal extends JFrame {
         card.add(reminderPanel, BorderLayout.SOUTH);
 
         homePanel.add(card);
-        homePanel.add(Box.createRigidArea(new Dimension(0, 18)));
+        homePanel.add(Box.createRigidArea(new Dimension(0, 20)));
 
-        // ===== BOTTOM BUTTONS =====
-        JPanel bottomButtons = new JPanel(new GridLayout(1, 2, 14, 0));
+        JPanel bottomButtons = new JPanel(new GridLayout(1, 2, 16, 0));
         bottomButtons.setBackground(new Color(248, 248, 250));
         bottomButtons.setAlignmentX(Component.LEFT_ALIGNMENT);
         bottomButtons.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
@@ -163,13 +158,192 @@ public class CustomerPortal extends JFrame {
         return homePanel;
     }
 
+    // ─── HISTORY PAGE ────────────────────────────────────────────────────────
+
+    private JPanel createHistoryPage() {
+        JPanel page = new JPanel(new BorderLayout());
+        page.setBackground(new Color(248, 248, 250));
+        page.setBorder(BorderFactory.createEmptyBorder(28, 32, 28, 32));
+
+        // Page title
+        JLabel title = new JLabel("Appointment & Service History");
+        title.setFont(new Font("Arial", Font.BOLD, 20));
+        title.setForeground(new Color(20, 20, 100));
+        title.setBorder(BorderFactory.createEmptyBorder(0, 0, 18, 0));
+        page.add(title, BorderLayout.NORTH);
+
+        // Table
+        String[] columns = {"Date", "Service", "Technician", "Status", "Total Paid"};
+        Object[][] data = getHistoryData();
+
+        JTable table = new JTable(data, columns) {
+            @Override
+            public boolean isCellEditable(int row, int col) { return false; }
+        };
+
+        table.setFont(new Font("Arial", Font.PLAIN, 13));
+        table.setRowHeight(36);
+        table.setShowGrid(false);
+        table.setIntercellSpacing(new Dimension(0, 0));
+        table.setSelectionBackground(new Color(237, 240, 255));
+        table.setSelectionForeground(new Color(20, 20, 100));
+        table.setBackground(Color.WHITE);
+        table.setForeground(new Color(30, 30, 40));
+
+        // Header styling
+        table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 12));
+        table.getTableHeader().setBackground(new Color(20, 20, 100));
+        table.getTableHeader().setForeground(Color.WHITE);
+        table.getTableHeader().setPreferredSize(new Dimension(0, 38));
+        table.getTableHeader().setBorder(BorderFactory.createEmptyBorder());
+
+        // Alternating row colors
+        table.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable t, Object value,
+                    boolean isSelected, boolean hasFocus, int row, int col) {
+                super.getTableCellRendererComponent(t, value, isSelected, hasFocus, row, col);
+                setBorder(BorderFactory.createEmptyBorder(0, 12, 0, 12));
+                if (isSelected) {
+                    setBackground(new Color(237, 240, 255));
+                    setForeground(new Color(20, 20, 100));
+                } else {
+                    setBackground(row % 2 == 0 ? Color.WHITE : new Color(250, 250, 252));
+                    setForeground(new Color(30, 30, 40));
+                }
+
+                // Color status column
+                if (col == 3 && value != null) {
+                    String status = value.toString();
+                    if (status.equals("Completed")) setForeground(new Color(40, 160, 80));
+                    else if (status.equals("Cancelled")) setForeground(new Color(200, 60, 60));
+                    else setForeground(new Color(180, 120, 0));
+                }
+                return this;
+            }
+        });
+
+        JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
+        scrollPane.getViewport().setBackground(Color.WHITE);
+
+        // Feedback section
+        JPanel feedbackSection = new JPanel(new BorderLayout());
+        feedbackSection.setBackground(new Color(248, 248, 250));
+        feedbackSection.setBorder(BorderFactory.createEmptyBorder(20, 0, 0, 0));
+
+        JLabel feedbackTitle = new JLabel("Feedback / Comments");
+        feedbackTitle.setFont(new Font("Arial", Font.BOLD, 14));
+        feedbackTitle.setForeground(new Color(30, 30, 40));
+        feedbackTitle.setBorder(BorderFactory.createEmptyBorder(0, 0, 8, 0));
+
+        JLabel feedbackHint = new JLabel("Click a row above to select an appointment before submitting feedback.");
+        feedbackHint.setFont(new Font("Arial", Font.PLAIN, 11));
+        feedbackHint.setForeground(new Color(150, 150, 160));
+        feedbackHint.setBorder(BorderFactory.createEmptyBorder(0, 0, 8, 0));
+
+        JTextArea feedbackArea = new JTextArea(4, 0);
+        feedbackArea.setFont(new Font("Arial", Font.PLAIN, 13));
+        feedbackArea.setForeground(new Color(30, 30, 40));
+        feedbackArea.setLineWrap(true);
+        feedbackArea.setWrapStyleWord(true);
+        feedbackArea.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(220, 220, 220)),
+            BorderFactory.createEmptyBorder(8, 10, 8, 10)
+        ));
+        feedbackArea.setEnabled(false);
+        feedbackArea.setDisabledTextColor(new Color(180, 180, 190));
+        feedbackArea.setText("Select an appointment first...");
+
+        JButton submitBtn = new JButton("Submit Feedback");
+        submitBtn.setFont(new Font("Arial", Font.PLAIN, 12));
+        submitBtn.setBackground(new Color(20, 20, 100));
+        submitBtn.setForeground(Color.WHITE);
+        submitBtn.setFocusPainted(false);
+        submitBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        submitBtn.setBorderPainted(false);
+        submitBtn.setEnabled(false);
+
+        JPanel submitRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 8));
+        submitRow.setBackground(new Color(248, 248, 250));
+        submitRow.add(submitBtn);
+
+        // Enable feedback when row selected
+        table.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting() && table.getSelectedRow() >= 0) {
+                feedbackArea.setEnabled(true);
+                feedbackArea.setText("");
+                submitBtn.setEnabled(true);
+            }
+        });
+
+        // Submit feedback action
+        submitBtn.addActionListener(e -> {
+            String feedback = feedbackArea.getText().trim();
+            if (feedback.isEmpty()) {
+                JOptionPane.showMessageDialog(this,
+                    "Please enter your feedback before submitting.",
+                    "Empty Feedback",
+                    JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            JOptionPane.showMessageDialog(this,
+                "Feedback submitted successfully!",
+                "Thank You",
+                JOptionPane.INFORMATION_MESSAGE);
+            feedbackArea.setText("");
+            feedbackArea.setEnabled(false);
+            submitBtn.setEnabled(false);
+            table.clearSelection();
+        });
+
+        JPanel feedbackTop = new JPanel(new BorderLayout());
+        feedbackTop.setBackground(new Color(248, 248, 250));
+        feedbackTop.add(feedbackTitle, BorderLayout.NORTH);
+        feedbackTop.add(feedbackHint, BorderLayout.CENTER);
+
+        feedbackSection.add(feedbackTop, BorderLayout.NORTH);
+        feedbackSection.add(new JScrollPane(feedbackArea), BorderLayout.CENTER);
+        feedbackSection.add(submitRow, BorderLayout.SOUTH);
+
+        page.add(scrollPane, BorderLayout.CENTER);
+        page.add(feedbackSection, BorderLayout.SOUTH);
+
+        return page;
+    }
+
+    private Object[][] getHistoryData() {
+        java.util.List<Appointment> history =
+            appointmentDAO.getPassAppointments(customerID);
+
+        if (history == null || history.isEmpty()) {
+            return new Object[0][5];
+        }
+
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd MMM yyyy");
+        Object[][] data = new Object[history.size()][5];
+
+        for (int i = 0; i < history.size(); i++) {
+            Appointment a = history.get(i);
+            String techName = technicianDAO.getTechnicianName(a.getTechnicianID());
+            data[i][0] = a.getAppointmentDate().format(fmt);
+            data[i][1] = a.getServiceType();
+            data[i][2] = techName != null ? techName : "N/A";
+            data[i][3] = a.getStatus();
+        }
+
+        return data;
+    }
+
+    // ─── SHARED HELPERS ──────────────────────────────────────────────────────
+
     private void addCardRow(JPanel panel, String label, String value) {
         JLabel lbl = new JLabel(label);
-        lbl.setFont(new Font("Arial", Font.PLAIN, 12));
+        lbl.setFont(new Font("Arial", Font.PLAIN, 13));
         lbl.setForeground(new Color(100, 100, 110));
 
         JLabel val = new JLabel(value);
-        val.setFont(new Font("Arial", Font.PLAIN, 12));
+        val.setFont(new Font("Arial", Font.PLAIN, 13));
         val.setForeground(new Color(30, 30, 40));
 
         panel.add(lbl);
@@ -185,6 +359,20 @@ public class CustomerPortal extends JFrame {
         btn.setFocusPainted(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btn.setPreferredSize(new Dimension(0, 70));
+
+        btn.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                btn.setBackground(new Color(245, 245, 255));
+                btn.setBorder(BorderFactory.createLineBorder(new Color(20, 20, 100)));
+            }
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                btn.setBackground(Color.WHITE);
+                btn.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
+            }
+        });
+
         return btn;
     }
 
@@ -199,15 +387,15 @@ public class CustomerPortal extends JFrame {
         return p;
     }
 
+    // ─── SIDEBAR ─────────────────────────────────────────────────────────────
+
     private JPanel createSidebar() {
         JPanel sidebar = new JPanel();
         sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
         sidebar.setBackground(Color.WHITE);
         sidebar.setPreferredSize(new Dimension(210, 0));
-        sidebar.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1,
-                new Color(230, 230, 230)));
+        sidebar.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, new Color(230, 230, 230)));
 
-        // Logo block
         JPanel logoBlock = new JPanel();
         logoBlock.setLayout(new BoxLayout(logoBlock, BoxLayout.Y_AXIS));
         logoBlock.setBackground(Color.WHITE);
@@ -233,10 +421,8 @@ public class CustomerPortal extends JFrame {
         logoBlock.add(Box.createRigidArea(new Dimension(0, 4)));
         logoBlock.add(logoSub);
         sidebar.add(logoBlock);
-
         sidebar.add(Box.createRigidArea(new Dimension(0, 12)));
 
-        // Section label
         JLabel sectionLabel = new JLabel("  MENU");
         sectionLabel.setFont(new Font("Arial", Font.BOLD, 10));
         sectionLabel.setForeground(new Color(180, 180, 180));
@@ -244,7 +430,6 @@ public class CustomerPortal extends JFrame {
         sectionLabel.setBorder(BorderFactory.createEmptyBorder(0, 14, 6, 0));
         sidebar.add(sectionLabel);
 
-        // Nav buttons
         String[][] navItems = {
             {"Home", "home"},
             {"Our Service", "ourService"},
@@ -299,15 +484,11 @@ public class CustomerPortal extends JFrame {
         btn.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mouseEntered(java.awt.event.MouseEvent e) {
-                if (btn != activeButton) {
-                    btn.setBackground(new Color(245, 245, 250));
-                }
+                if (btn != activeButton) btn.setBackground(new Color(245, 245, 250));
             }
             @Override
             public void mouseExited(java.awt.event.MouseEvent e) {
-                if (btn != activeButton) {
-                    btn.setBackground(Color.WHITE);
-                }
+                if (btn != activeButton) btn.setBackground(Color.WHITE);
             }
         });
 
@@ -339,19 +520,17 @@ public class CustomerPortal extends JFrame {
             JOptionPane.YES_NO_OPTION,
             JOptionPane.WARNING_MESSAGE
         );
-        if (choice == JOptionPane.YES_OPTION) {
-            dispose();
-        }
+        if (choice == JOptionPane.YES_OPTION) dispose();
     }
+
+    // ─── STATUS BAR ──────────────────────────────────────────────────────────
 
     private JPanel createStatusBar() {
         JPanel bar = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 6));
         bar.setBackground(new Color(248, 248, 250));
-        bar.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0,
-                new Color(220, 220, 220)));
+        bar.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(220, 220, 220)));
         bar.setPreferredSize(new Dimension(0, 30));
 
-        // 从 customer 对象读取名字
         String name = (customer != null) ? customer.getName() : "Unknown";
         String todayDate = LocalDate.now().format(DateTimeFormatter.ofPattern("EEE, dd MMM yyyy"));
 
