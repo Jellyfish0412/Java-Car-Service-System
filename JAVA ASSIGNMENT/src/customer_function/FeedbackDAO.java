@@ -64,14 +64,14 @@ public class FeedbackDAO {
         return feedbacks;
     }
 
-    public boolean submitFeedback(String appointmentID, String customerID, String rating, String comments) {
+    public boolean submitFeedback(String appointmentID, String customerID, String ratings, String comments) {
         if (getFeedbackByAppointmentID(appointmentID) != null) {
             return false; // Feedback already exists for this appointment
         }
 
         String newID = generateNewID();
         String date = LocalDate.now().toString();
-        String record   = newID + "|" + appointmentID + "|" + customerID + "|" + comments + "|" + rating + "|" + date;
+        String record   = newID + "|" + appointmentID + "|" + customerID + "|" + comments + "|" + ratings + "|" + date;
 
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(FILE_PATH, true))) {
             bw.newLine();

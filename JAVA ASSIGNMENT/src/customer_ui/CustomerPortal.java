@@ -4,6 +4,7 @@ import customer_function.*;
 import java.awt.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import javax.swing.*;
 
 public class CustomerPortal extends JFrame {
@@ -17,6 +18,7 @@ public class CustomerPortal extends JFrame {
     private CustomerDAO customerDAO = new CustomerDAO();
     private AppointmentDAO appointmentDAO = new AppointmentDAO();
     private TechnicianDAO technicianDAO = new TechnicianDAO();
+    private FeedbackDAO feedbackDAO = new FeedbackDAO();
 
     private Customer customer;
     private Appointment upcoming;
@@ -165,16 +167,33 @@ public class CustomerPortal extends JFrame {
         page.setBackground(new Color(248, 248, 250));
         page.setBorder(BorderFactory.createEmptyBorder(28, 32, 28, 32));
 
-        // Page title
+        // ── Top bar: title + back button ─────────────────────────────────────
+        JPanel topBar = new JPanel(new BorderLayout());
+        topBar.setBackground(new Color(248, 248, 250));
+        topBar.setBorder(BorderFactory.createEmptyBorder(0, 0, 18, 0));
+
         JLabel title = new JLabel("Appointment & Service History");
         title.setFont(new Font("Arial", Font.BOLD, 20));
         title.setForeground(new Color(20, 20, 100));
-        title.setBorder(BorderFactory.createEmptyBorder(0, 0, 18, 0));
-        page.add(title, BorderLayout.NORTH);
 
-        // Table
-        String[] columns = {"Date", "Service", "Technician", "Status", "Total Paid"};
-        Object[][] data = getHistoryData();
+        JButton backBtn = new JButton("← Back to Home");
+        backBtn.setFont(new Font("Arial", Font.PLAIN, 12));
+        backBtn.setBackground(Color.WHITE);
+        backBtn.setForeground(new Color(20, 20, 100));
+        backBtn.setBorder(BorderFactory.createLineBorder(new Color(20, 20, 100)));
+        backBtn.setFocusPainted(false);
+        backBtn.setOpaque(true);
+        backBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        backBtn.addActionListener(e -> cardLayout.show(contentPanel, "home"));
+
+        topBar.add(title, BorderLayout.WEST);
+        topBar.add(backBtn, BorderLayout.EAST);
+        page.add(topBar, BorderLayout.NORTH);
+
+        // ── Table ─────────────────────────────────────────────────────────────
+        List<Appointment> history = appointmentDAO.getPassAppointments(customerID);
+        Object[][] data = buildHistoryTableData(history);
+        String[] columns = {"Date", "Service", "Technician", "Status"};
 
         JTable table = new JTable(data, columns) {
             @Override
@@ -189,15 +208,12 @@ public class CustomerPortal extends JFrame {
         table.setSelectionForeground(new Color(20, 20, 100));
         table.setBackground(Color.WHITE);
         table.setForeground(new Color(30, 30, 40));
-
-        // Header styling
         table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 12));
         table.getTableHeader().setBackground(new Color(20, 20, 100));
         table.getTableHeader().setForeground(Color.WHITE);
         table.getTableHeader().setPreferredSize(new Dimension(0, 38));
         table.getTableHeader().setBorder(BorderFactory.createEmptyBorder());
 
-        // Alternating row colors
         table.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable t, Object value,
@@ -210,14 +226,12 @@ public class CustomerPortal extends JFrame {
                 } else {
                     setBackground(row % 2 == 0 ? Color.WHITE : new Color(250, 250, 252));
                     setForeground(new Color(30, 30, 40));
-                }
-
-                // Color status column
-                if (col == 3 && value != null) {
-                    String status = value.toString();
-                    if (status.equals("Completed")) setForeground(new Color(40, 160, 80));
-                    else if (status.equals("Cancelled")) setForeground(new Color(200, 60, 60));
-                    else setForeground(new Color(180, 120, 0));
+                    if (col == 3 && value != null) {
+                        String s = value.toString();
+                        if (s.equals("Completed"))      setForeground(new Color(40, 160, 80));
+                        else if (s.equals("Cancelled")) setForeground(new Color(200, 60, 60));
+                        else                            setForeground(new Color(180, 120, 0));
+                    }
                 }
                 return this;
             }
@@ -227,24 +241,48 @@ public class CustomerPortal extends JFrame {
         scrollPane.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
         scrollPane.getViewport().setBackground(Color.WHITE);
 
-        // Feedback section
-        JPanel feedbackSection = new JPanel(new BorderLayout());
+        // ── Feedback Section ──────────────────────────────────────────────────
+        JPanel feedbackSection = new JPanel(new BorderLayout(0, 8));
         feedbackSection.setBackground(new Color(248, 248, 250));
         feedbackSection.setBorder(BorderFactory.createEmptyBorder(20, 0, 0, 0));
 
         JLabel feedbackTitle = new JLabel("Feedback / Comments");
         feedbackTitle.setFont(new Font("Arial", Font.BOLD, 14));
-        feedbackTitle.setForeground(new Color(30, 30, 40));
-        feedbackTitle.setBorder(BorderFactory.createEmptyBorder(0, 0, 8, 0));
+        feedbackTitle.setForeground(Color.BLACK);
 
         JLabel feedbackHint = new JLabel("Click a row above to select an appointment before submitting feedback.");
         feedbackHint.setFont(new Font("Arial", Font.PLAIN, 11));
         feedbackHint.setForeground(new Color(150, 150, 160));
-        feedbackHint.setBorder(BorderFactory.createEmptyBorder(0, 0, 8, 0));
 
+        JPanel feedbackTopPanel = new JPanel(new BorderLayout(0, 4));
+        feedbackTopPanel.setBackground(new Color(248, 248, 250));
+        feedbackTopPanel.add(feedbackTitle, BorderLayout.NORTH);
+        feedbackTopPanel.add(feedbackHint, BorderLayout.SOUTH);
+
+        // Rating dropdown
+        JPanel ratingRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        ratingRow.setBackground(new Color(248, 248, 250));
+        JLabel ratingLabel = new JLabel("Rating:");
+        ratingLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+        ratingLabel.setForeground(Color.BLACK);
+        String[] ratings = {
+            "Select rating",
+            "1 - Poor",
+            "2 - Fair",
+            "3 - Good",
+            "4 - Very Good",
+            "5 - Excellent"
+        };
+        JComboBox<String> ratingBox = new JComboBox<>(ratings);
+        ratingBox.setFont(new Font("Arial", Font.PLAIN, 12));
+        ratingBox.setEnabled(false);
+        ratingRow.add(ratingLabel);
+        ratingRow.add(ratingBox);
+
+        // Text area
         JTextArea feedbackArea = new JTextArea(4, 0);
         feedbackArea.setFont(new Font("Arial", Font.PLAIN, 13));
-        feedbackArea.setForeground(new Color(30, 30, 40));
+        feedbackArea.setForeground(Color.BLACK);
         feedbackArea.setLineWrap(true);
         feedbackArea.setWrapStyleWord(true);
         feedbackArea.setBorder(BorderFactory.createCompoundBorder(
@@ -252,59 +290,123 @@ public class CustomerPortal extends JFrame {
             BorderFactory.createEmptyBorder(8, 10, 8, 10)
         ));
         feedbackArea.setEnabled(false);
-        feedbackArea.setDisabledTextColor(new Color(180, 180, 190));
+        feedbackArea.setDisabledTextColor(new Color(150, 150, 160));
         feedbackArea.setText("Select an appointment first...");
 
-        JButton submitBtn = new JButton("Submit Feedback");
+        // Submit button — grey when disabled, dark blue when enabled
+        JButton submitBtn = new JButton("Submit Feedback") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                if (!isEnabled()) {
+                    g.setColor(new Color(200, 200, 200));
+                    g.fillRect(0, 0, getWidth(), getHeight());
+                    g.setColor(new Color(120, 120, 120));
+                    g.setFont(getFont());
+                    FontMetrics fm = g.getFontMetrics();
+                    int x = (getWidth() - fm.stringWidth(getText())) / 2;
+                    int y = (getHeight() + fm.getAscent() - fm.getDescent()) / 2;
+                    g.drawString(getText(), x, y);
+                } else {
+                    super.paintComponent(g);
+                }
+            }
+        };
         submitBtn.setFont(new Font("Arial", Font.PLAIN, 12));
         submitBtn.setBackground(new Color(20, 20, 100));
         submitBtn.setForeground(Color.WHITE);
         submitBtn.setFocusPainted(false);
         submitBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         submitBtn.setBorderPainted(false);
+        submitBtn.setOpaque(true);
         submitBtn.setEnabled(false);
 
-        JPanel submitRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 8));
+        JPanel submitRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 4));
         submitRow.setBackground(new Color(248, 248, 250));
         submitRow.add(submitBtn);
 
-        // Enable feedback when row selected
+        JPanel inputPanel = new JPanel(new BorderLayout(0, 8));
+        inputPanel.setBackground(new Color(248, 248, 250));
+        inputPanel.add(ratingRow, BorderLayout.NORTH);
+        inputPanel.add(new JScrollPane(feedbackArea), BorderLayout.CENTER);
+        inputPanel.add(submitRow, BorderLayout.SOUTH);
+
+        feedbackSection.add(feedbackTopPanel, BorderLayout.NORTH);
+        feedbackSection.add(inputPanel, BorderLayout.CENTER);
+
+        // Track selected appointmentID
+        final String[] selectedApptID = {null};
+
         table.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting() && table.getSelectedRow() >= 0) {
-                feedbackArea.setEnabled(true);
-                feedbackArea.setText("");
-                submitBtn.setEnabled(true);
+                int row = table.getSelectedRow();
+                if (history != null && row < history.size()) {
+                    String apptID = history.get(row).getAppointmentID();
+                    selectedApptID[0] = apptID;
+
+                    Feedback existing = feedbackDAO.getFeedbackByAppointmentID(apptID);
+                    if (existing != null) {
+                        feedbackArea.setEnabled(false);
+                        feedbackArea.setText(existing.getComment());
+                        ratingBox.setEnabled(false);
+                        try {
+                            int ratingIndex = Integer.parseInt(existing.getRating());
+                            ratingBox.setSelectedIndex(ratingIndex);
+                        } catch (NumberFormatException ignored) {
+                            ratingBox.setSelectedIndex(0);
+                        }
+                        submitBtn.setEnabled(false);
+                        feedbackHint.setText("You have already submitted feedback for this appointment.");
+                        feedbackHint.setForeground(new Color(40, 160, 80));
+                    } else {
+                        feedbackArea.setEnabled(true);
+                        feedbackArea.setText("");
+                        feedbackArea.setForeground(Color.BLACK);
+                        ratingBox.setEnabled(true);
+                        ratingBox.setSelectedIndex(0);
+                        submitBtn.setEnabled(true);
+                        feedbackHint.setText("Write your feedback below and click Submit.");
+                        feedbackHint.setForeground(new Color(150, 150, 160));
+                    }
+                }
             }
         });
 
-        // Submit feedback action
+        // Submit action
         submitBtn.addActionListener(e -> {
-            String feedback = feedbackArea.getText().trim();
-            if (feedback.isEmpty()) {
+            String comment  = feedbackArea.getText().trim();
+            int ratingIndex = ratingBox.getSelectedIndex();
+
+            if (comment.isEmpty()) {
                 JOptionPane.showMessageDialog(this,
-                    "Please enter your feedback before submitting.",
-                    "Empty Feedback",
-                    JOptionPane.WARNING_MESSAGE);
+                    "Please enter your comment before submitting.",
+                    "Empty Comment", JOptionPane.WARNING_MESSAGE);
                 return;
             }
-            JOptionPane.showMessageDialog(this,
-                "Feedback submitted successfully!",
-                "Thank You",
-                JOptionPane.INFORMATION_MESSAGE);
-            feedbackArea.setText("");
-            feedbackArea.setEnabled(false);
-            submitBtn.setEnabled(false);
-            table.clearSelection();
+            if (ratingIndex == 0) {
+                JOptionPane.showMessageDialog(this,
+                    "Please select a rating before submitting.",
+                    "No Rating", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            boolean success = feedbackDAO.submitFeedback(
+                selectedApptID[0], customerID, String.valueOf(ratingIndex), comment);
+
+            if (success) {
+                JOptionPane.showMessageDialog(this,
+                    "Feedback submitted successfully! Thank you.",
+                    "Submitted", JOptionPane.INFORMATION_MESSAGE);
+                feedbackArea.setEnabled(false);
+                ratingBox.setEnabled(false);
+                submitBtn.setEnabled(false);
+                feedbackHint.setText("You have already submitted feedback for this appointment.");
+                feedbackHint.setForeground(new Color(40, 160, 80));
+            } else {
+                JOptionPane.showMessageDialog(this,
+                    "Failed to submit. Please try again.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+            }
         });
-
-        JPanel feedbackTop = new JPanel(new BorderLayout());
-        feedbackTop.setBackground(new Color(248, 248, 250));
-        feedbackTop.add(feedbackTitle, BorderLayout.NORTH);
-        feedbackTop.add(feedbackHint, BorderLayout.CENTER);
-
-        feedbackSection.add(feedbackTop, BorderLayout.NORTH);
-        feedbackSection.add(new JScrollPane(feedbackArea), BorderLayout.CENTER);
-        feedbackSection.add(submitRow, BorderLayout.SOUTH);
 
         page.add(scrollPane, BorderLayout.CENTER);
         page.add(feedbackSection, BorderLayout.SOUTH);
@@ -312,16 +414,11 @@ public class CustomerPortal extends JFrame {
         return page;
     }
 
-    private Object[][] getHistoryData() {
-        java.util.List<Appointment> history =
-            appointmentDAO.getPassAppointments(customerID);
-
-        if (history == null || history.isEmpty()) {
-            return new Object[0][5];
-        }
+    private Object[][] buildHistoryTableData(List<Appointment> history) {
+        if (history == null || history.isEmpty()) return new Object[0][4];
 
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd MMM yyyy");
-        Object[][] data = new Object[history.size()][5];
+        Object[][] data = new Object[history.size()][4];
 
         for (int i = 0; i < history.size(); i++) {
             Appointment a = history.get(i);
@@ -331,7 +428,6 @@ public class CustomerPortal extends JFrame {
             data[i][2] = techName != null ? techName : "N/A";
             data[i][3] = a.getStatus();
         }
-
         return data;
     }
 
