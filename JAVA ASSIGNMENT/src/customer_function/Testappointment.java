@@ -41,5 +41,14 @@ public class Testappointment {
                              + a.getServiceType() + " | "
                              + a.getStatus());
         }
+
+        // Test 4: submit new appointment
+        System.out.println("\n=== Submitting New Appointment ===");
+        boolean submitted = dao.submitAppointment("C001", "S001", java.time.LocalDate.now(), "10:00", "Toyota","Camry", "ABC-123", "Regular Maintenance");
+        if (submitted) {
+            System.out.println("New appointment submitted successfully!");
+        } else {
+            System.out.println("Failed to submit new appointment.");
+        }
     }
 }

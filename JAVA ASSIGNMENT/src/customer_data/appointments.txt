@@ -1,5 +1,7 @@
-A001|C001|ST001|TY001|T001|SI001|2026-03-26|10:00|11:00|Confirmed|Toyota|Camry|VKU 4821|Please check the tires too|Nor
-A002|C001|ST001|TY002|T002|SI002|2026-04-05|14:00|16:00|Confirmed|Toyota|Camry|VKU 4821|Full inspection needed|Spe
-A003|C001|ST002|TY001|T001|SI001|2026-02-10|09:00|10:00|Completed|Honda|Civic|WXY 1234|Just routine service|Nor
-A004|C001|ST002|TY002|T003|SI003|2026-01-15|13:00|15:00|Completed|Honda|Civic|WXY 1234|Engine making noise|Spe
-A005|C001|ST001|TY001|T002|SI002|2026-05-01|11:00|12:00|Pending|Toyota|Camry|VKU 4821|Check air conditioning|Nor
+A001|C002|ST001|TY001|T001|SI001|2026-03-26|10:00|11:00|Confirmed|Toyota|Camry|VKU 4821|Please check the tires too|Normal
+A002|C002|ST001|TY002|T002|SI002|2026-04-05|14:00|16:00|Confirmed|Toyota|Camry|VKU 4821|Full inspection needed|Special
+A003|C002|ST002|TY001|T001|SI001|2026-02-10|09:00|10:00|Completed|Honda|Civic|WXY 1234|Just routine service|Normal
+A004|C002|ST002|TY002|T003|SI003|2026-01-15|13:00|15:00|Completed|Honda|Civic|WXY 1234|Engine making noise|Special
+A005|C001|ST001|TY001|T002|SI002|2026-05-01|11:00|12:00|Pending|Toyota|Camry|VKU 4821|Check air conditioning|Normal
+A006|C001|N/A|N/A|N/A|SI002|2026-07-28|09:00|N/A|Pending|xx99|ll00|][\\|hi|Special
+A007|C001|N/A|N/A|N/A|SI005|2026-04-01|10:00|N/A|Pending|Produa|Axia|KEE3143|N/A|Normal

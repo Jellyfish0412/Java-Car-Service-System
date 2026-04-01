@@ -4,7 +4,9 @@ import customer_function.*;
 import java.awt.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import javax.swing.*;
 
 public class CustomerPortal extends JFrame {
@@ -19,9 +21,13 @@ public class CustomerPortal extends JFrame {
     private AppointmentDAO appointmentDAO = new AppointmentDAO();
     private TechnicianDAO technicianDAO = new TechnicianDAO();
     private FeedbackDAO feedbackDAO = new FeedbackDAO();
+    private ServiceItemDAO serviceItemDAO = new ServiceItemDAO();
 
     private Customer customer;
     private Appointment upcoming;
+
+    // 保存 home page 的引用，方便刷新
+    private JPanel homePagePanel;
 
     public CustomerPortal() {
         customer = customerDAO.getCustomerByID(customerID);
@@ -64,10 +70,11 @@ public class CustomerPortal extends JFrame {
         contentPanel = new JPanel(cardLayout);
         contentPanel.setBackground(new Color(248, 248, 250));
 
-        contentPanel.add(createHomePage(), "home");
+        homePagePanel = createHomePage();
+        contentPanel.add(homePagePanel, "home");
         contentPanel.add(placeholder("Our Service"), "ourService");
         contentPanel.add(createHistoryPage(), "history");
-        contentPanel.add(placeholder("Make Appointment"), "makeAppointment");
+        contentPanel.add(createMakeAppointmentPage(), "makeAppointment");
         contentPanel.add(placeholder("Profile"), "profile");
 
         mainArea.add(createSidebar(), BorderLayout.WEST);
@@ -108,6 +115,9 @@ public class CustomerPortal extends JFrame {
         JPanel cardContent = new JPanel(new GridLayout(6, 2, 10, 10));
         cardContent.setBackground(Color.WHITE);
         cardContent.setBorder(BorderFactory.createEmptyBorder(18, 24, 18, 24));
+
+        // 每次重新读取最新 upcoming
+        upcoming = appointmentDAO.getUpcomingAppointmentByCustomerID(customerID);
 
         if (upcoming != null) {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("EEEE, dd MMMM yyyy");
@@ -160,14 +170,301 @@ public class CustomerPortal extends JFrame {
         return homePanel;
     }
 
+    // 刷新 Home 页面（预约成功后调用）
+    private void refreshHomePage() {
+        contentPanel.remove(homePagePanel);
+        homePagePanel = createHomePage();
+        contentPanel.add(homePagePanel, "home");
+        cardLayout.show(contentPanel, "home");
+        contentPanel.revalidate();
+        contentPanel.repaint();
+    }
+
+    // ─── MAKE APPOINTMENT PAGE ───────────────────────────────────────────────
+
+    private JPanel createMakeAppointmentPage() {
+        JPanel page = new JPanel(new BorderLayout());
+        page.setBackground(new Color(248, 248, 250));
+        page.setBorder(BorderFactory.createEmptyBorder(28, 32, 28, 32));
+
+        // ── Top bar ──
+        JPanel topBar = new JPanel(new BorderLayout());
+        topBar.setBackground(new Color(248, 248, 250));
+        topBar.setBorder(BorderFactory.createEmptyBorder(0, 0, 18, 0));
+
+        JLabel title = new JLabel("Book New Appointment");
+        title.setFont(new Font("Arial", Font.BOLD, 20));
+        title.setForeground(new Color(20, 20, 100));
+
+        JButton backBtn = new JButton("← Back to Home");
+        backBtn.setFont(new Font("Arial", Font.PLAIN, 12));
+        backBtn.setBackground(Color.WHITE);
+        backBtn.setForeground(new Color(20, 20, 100));
+        backBtn.setBorder(BorderFactory.createLineBorder(new Color(20, 20, 100)));
+        backBtn.setFocusPainted(false);
+        backBtn.setOpaque(true);
+        backBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        backBtn.addActionListener(e -> cardLayout.show(contentPanel, "home"));
+
+        topBar.add(title, BorderLayout.WEST);
+        topBar.add(backBtn, BorderLayout.EAST);
+        page.add(topBar, BorderLayout.NORTH);
+
+        // ── Form ──
+        JPanel formPanel = new JPanel(new GridBagLayout());
+        formPanel.setBackground(Color.WHITE);
+        formPanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(220, 220, 220)),
+            BorderFactory.createEmptyBorder(24, 32, 24, 32)
+        ));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(12, 12, 12, 12);
+        gbc.anchor = GridBagConstraints.WEST;
+
+        JTextField brandField = createTextField("e.g. Honda, Toyota");
+        JTextField modelField = createTextField("e.g. Civic, Vios");
+        JTextField plateField = createTextField("e.g. WAB 1234");
+        // 新增：备注 / Command 输入框
+        JTextField commandField = createTextField("e.g. Please check brakes too");
+
+        // Service Category & Item
+        List<ServiceItem> allItems = serviceItemDAO.getAllServiceItems();
+        Set<String> categorySet = new HashSet<>();
+        for (ServiceItem item : allItems) {
+            categorySet.add(item.getCategory());
+        }
+
+        JComboBox<String> categoryBox = new JComboBox<>(categorySet.toArray(new String[0]));
+        // itemBox 存储 ServiceItem 对象，显示 description
+        JComboBox<ServiceItem> itemBox = new JComboBox<>();
+        styleComboBox(categoryBox);
+        styleComboBox(itemBox);
+
+        // 自定义 itemBox 显示文字
+        itemBox.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value,
+                    int index, boolean isSelected, boolean cellHasFocus) {
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (value instanceof ServiceItem) {
+                    ServiceItem si = (ServiceItem) value;
+                    setText(si.getDescription() + " (" + si.getDuration() + ")");
+                }
+                return this;
+            }
+        });
+
+        categoryBox.addActionListener(e -> {
+            itemBox.removeAllItems();
+            String selectedCat = (String) categoryBox.getSelectedItem();
+            if (selectedCat != null) {
+                List<ServiceItem> filteredItems = serviceItemDAO.getServiceItemsByCategory(selectedCat);
+                for (ServiceItem item : filteredItems) {
+                    itemBox.addItem(item);
+                }
+            }
+        });
+        if (categoryBox.getItemCount() > 0) categoryBox.setSelectedIndex(0);
+
+        // Date pickers
+        JPanel datePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        datePanel.setBackground(Color.WHITE);
+
+        JComboBox<Integer> yearBox = new JComboBox<>();
+        JComboBox<Integer> monthBox = new JComboBox<>();
+        JComboBox<Integer> dayBox = new JComboBox<>();
+        styleComboBox(yearBox);
+        styleComboBox(monthBox);
+        styleComboBox(dayBox);
+
+        LocalDate today = LocalDate.now();
+        yearBox.addItem(today.getYear());
+        yearBox.addItem(today.getYear() + 1);
+
+        for (int i = 1; i <= 12; i++) monthBox.addItem(i);
+        monthBox.setSelectedItem(today.getMonthValue());
+
+        java.awt.event.ActionListener updateDaysListener = e -> {
+            if (yearBox.getSelectedItem() == null || monthBox.getSelectedItem() == null) return;
+            int y = (Integer) yearBox.getSelectedItem();
+            int m = (Integer) monthBox.getSelectedItem();
+            int daysInMonth = java.time.YearMonth.of(y, m).lengthOfMonth();
+
+            Object currentDayObj = dayBox.getSelectedItem();
+            int currentDay = (currentDayObj != null) ? (Integer) currentDayObj : today.getDayOfMonth();
+
+            dayBox.removeAllItems();
+            for (int i = 1; i <= daysInMonth; i++) dayBox.addItem(i);
+
+            dayBox.setSelectedItem(Math.min(currentDay, daysInMonth));
+        };
+
+        yearBox.addActionListener(updateDaysListener);
+        monthBox.addActionListener(updateDaysListener);
+        updateDaysListener.actionPerformed(null);
+
+        datePanel.add(yearBox);
+        datePanel.add(new JLabel("Year"));
+        datePanel.add(monthBox);
+        datePanel.add(new JLabel("Month"));
+        datePanel.add(dayBox);
+        datePanel.add(new JLabel("Day"));
+
+        // 修复：时间格式统一为 24 小时制，与数据库一致
+        JComboBox<String> timeBox = new JComboBox<>(new String[]{
+            "09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"
+        });
+        styleComboBox(timeBox);
+
+        int row = 0;
+        addFormRow(formPanel, "Vehicle Brand *:", brandField, gbc, row++);
+        addFormRow(formPanel, "Vehicle Model *:", modelField, gbc, row++);
+        addFormRow(formPanel, "Vehicle Plate *:", plateField, gbc, row++);
+        addFormRow(formPanel, "Service Category:", categoryBox, gbc, row++);
+        addFormRow(formPanel, "Select Service *:", itemBox, gbc, row++);
+        addFormRow(formPanel, "Preferred Date *:", datePanel, gbc, row++);
+        addFormRow(formPanel, "Preferred Time *:", timeBox, gbc, row++);
+        addFormRow(formPanel, "Remarks:", commandField, gbc, row++);
+
+        // Submit Button
+        JButton submitBtn = new JButton("Confirm Booking");
+        submitBtn.setFont(new Font("Arial", Font.BOLD, 13));
+        submitBtn.setBackground(new Color(20, 20, 100));
+        submitBtn.setForeground(Color.WHITE);
+        submitBtn.setFocusPainted(false);
+        submitBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        submitBtn.setBorder(BorderFactory.createEmptyBorder(10, 24, 10, 24));
+        submitBtn.setOpaque(true);
+
+        submitBtn.addActionListener(e -> {
+            // 验证必填项
+            if (brandField.getText().trim().isEmpty()
+                    || modelField.getText().trim().isEmpty()
+                    || plateField.getText().trim().isEmpty()) {
+                JOptionPane.showMessageDialog(this,
+                    "Please fill in all vehicle details.",
+                    "Incomplete Info", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            if (itemBox.getSelectedItem() == null) {
+                JOptionPane.showMessageDialog(this,
+                    "Please select a service item.",
+                    "Incomplete Info", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            // 组合并验证日期
+            int y = (Integer) yearBox.getSelectedItem();
+            int m = (Integer) monthBox.getSelectedItem();
+            int d = (Integer) dayBox.getSelectedItem();
+            LocalDate selectedDate = LocalDate.of(y, m, d);
+
+            if (selectedDate.isBefore(today)) {
+                JOptionPane.showMessageDialog(this,
+                    "You cannot book an appointment in the past. Please select a future date.",
+                    "Invalid Date", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            // 获取选中的 ServiceItem ID
+            ServiceItem selectedItem = (ServiceItem) itemBox.getSelectedItem();
+            String serviceItemID = selectedItem.getServiceItemID();
+            String time = (String) timeBox.getSelectedItem();
+            String command = commandField.getText().trim().isEmpty() ? "N/A" : commandField.getText().trim();
+
+            // 真正调用 DAO 提交预约
+            boolean submitted = appointmentDAO.submitAppointment(
+                customerID,
+                serviceItemID,
+                selectedDate,
+                time,
+                brandField.getText().trim(),
+                modelField.getText().trim(),
+                plateField.getText().trim(),
+                command
+            );
+
+            if (submitted) {
+                JOptionPane.showMessageDialog(this,
+                    "Appointment Booked Successfully!\nSee you on "
+                    + selectedDate.format(DateTimeFormatter.ofPattern("dd MMM yyyy")) + ".",
+                    "Success", JOptionPane.INFORMATION_MESSAGE);
+
+                // 清空输入框
+                brandField.setText("");
+                modelField.setText("");
+                plateField.setText("");
+                commandField.setText("");
+                categoryBox.setSelectedIndex(0);
+                yearBox.setSelectedItem(today.getYear());
+                monthBox.setSelectedItem(today.getMonthValue());
+                dayBox.setSelectedItem(today.getDayOfMonth());
+                timeBox.setSelectedIndex(0);
+
+                // 刷新 Home 页面显示新预约
+                refreshHomePage();
+            } else {
+                JOptionPane.showMessageDialog(this,
+                    "Failed to book appointment.\nYou may already have an appointment at this date and time.",
+                    "Booking Failed", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        JPanel submitPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        submitPanel.setBackground(Color.WHITE);
+        submitPanel.add(submitBtn);
+
+        gbc.gridx = 0; gbc.gridy = row; gbc.gridwidth = 2;
+        gbc.insets = new Insets(20, 12, 0, 12);
+        formPanel.add(submitPanel, gbc);
+
+        JScrollPane scrollPane = new JScrollPane(formPanel);
+        scrollPane.setBorder(null);
+        scrollPane.getViewport().setBackground(new Color(248, 248, 250));
+        page.add(scrollPane, BorderLayout.CENTER);
+
+        return page;
+    }
+
+    private JTextField createTextField(String placeholder) {
+        JTextField tf = new JTextField(20);
+        tf.setFont(new Font("Arial", Font.PLAIN, 13));
+        tf.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(200, 200, 200)),
+            BorderFactory.createEmptyBorder(8, 10, 8, 10)
+        ));
+        tf.setToolTipText(placeholder);
+        return tf;
+    }
+
+    private void styleComboBox(JComboBox<?> box) {
+        box.setFont(new Font("Arial", Font.PLAIN, 13));
+        box.setBackground(Color.WHITE);
+    }
+
+    private void addFormRow(JPanel panel, String labelText, JComponent comp, GridBagConstraints gbc, int row) {
+        JLabel label = new JLabel(labelText);
+        label.setFont(new Font("Arial", Font.BOLD, 13));
+        label.setForeground(new Color(50, 50, 60));
+
+        gbc.gridx = 0; gbc.gridy = row; gbc.gridwidth = 1; gbc.weightx = 0.2;
+        panel.add(label, gbc);
+
+        gbc.gridx = 1; gbc.gridy = row; gbc.weightx = 0.8;
+        panel.add(comp, gbc);
+    }
+
     // ─── HISTORY PAGE ────────────────────────────────────────────────────────
+    // (不变，原样保留)
 
     private JPanel createHistoryPage() {
         JPanel page = new JPanel(new BorderLayout());
         page.setBackground(new Color(248, 248, 250));
         page.setBorder(BorderFactory.createEmptyBorder(28, 32, 28, 32));
 
-        // ── Top bar: title + back button ─────────────────────────────────────
         JPanel topBar = new JPanel(new BorderLayout());
         topBar.setBackground(new Color(248, 248, 250));
         topBar.setBorder(BorderFactory.createEmptyBorder(0, 0, 18, 0));
@@ -190,7 +487,6 @@ public class CustomerPortal extends JFrame {
         topBar.add(backBtn, BorderLayout.EAST);
         page.add(topBar, BorderLayout.NORTH);
 
-        // ── Table ─────────────────────────────────────────────────────────────
         List<Appointment> history = appointmentDAO.getPassAppointments(customerID);
         Object[][] data = buildHistoryTableData(history);
         String[] columns = {"Date", "Service", "Technician", "Status"};
@@ -241,7 +537,6 @@ public class CustomerPortal extends JFrame {
         scrollPane.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
         scrollPane.getViewport().setBackground(Color.WHITE);
 
-        // ── Feedback Section ──────────────────────────────────────────────────
         JPanel feedbackSection = new JPanel(new BorderLayout(0, 8));
         feedbackSection.setBackground(new Color(248, 248, 250));
         feedbackSection.setBorder(BorderFactory.createEmptyBorder(20, 0, 0, 0));
@@ -259,27 +554,18 @@ public class CustomerPortal extends JFrame {
         feedbackTopPanel.add(feedbackTitle, BorderLayout.NORTH);
         feedbackTopPanel.add(feedbackHint, BorderLayout.SOUTH);
 
-        // Rating dropdown
         JPanel ratingRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         ratingRow.setBackground(new Color(248, 248, 250));
         JLabel ratingLabel = new JLabel("Rating:");
         ratingLabel.setFont(new Font("Arial", Font.PLAIN, 12));
         ratingLabel.setForeground(Color.BLACK);
-        String[] ratings = {
-            "Select rating",
-            "1 - Poor",
-            "2 - Fair",
-            "3 - Good",
-            "4 - Very Good",
-            "5 - Excellent"
-        };
+        String[] ratings = {"Select rating", "1 - Poor", "2 - Fair", "3 - Good", "4 - Very Good", "5 - Excellent"};
         JComboBox<String> ratingBox = new JComboBox<>(ratings);
         ratingBox.setFont(new Font("Arial", Font.PLAIN, 12));
         ratingBox.setEnabled(false);
         ratingRow.add(ratingLabel);
         ratingRow.add(ratingBox);
 
-        // Text area
         JTextArea feedbackArea = new JTextArea(4, 0);
         feedbackArea.setFont(new Font("Arial", Font.PLAIN, 13));
         feedbackArea.setForeground(Color.BLACK);
@@ -293,7 +579,6 @@ public class CustomerPortal extends JFrame {
         feedbackArea.setDisabledTextColor(new Color(150, 150, 160));
         feedbackArea.setText("Select an appointment first...");
 
-        // Submit button — grey when disabled, dark blue when enabled
         JButton submitBtn = new JButton("Submit Feedback") {
             @Override
             protected void paintComponent(Graphics g) {
@@ -333,7 +618,6 @@ public class CustomerPortal extends JFrame {
         feedbackSection.add(feedbackTopPanel, BorderLayout.NORTH);
         feedbackSection.add(inputPanel, BorderLayout.CENTER);
 
-        // Track selected appointmentID
         final String[] selectedApptID = {null};
 
         table.getSelectionModel().addListSelectionListener(e -> {
@@ -349,8 +633,7 @@ public class CustomerPortal extends JFrame {
                         feedbackArea.setText(existing.getComment());
                         ratingBox.setEnabled(false);
                         try {
-                            int ratingIndex = Integer.parseInt(existing.getRating());
-                            ratingBox.setSelectedIndex(ratingIndex);
+                            ratingBox.setSelectedIndex(Integer.parseInt(existing.getRating()));
                         } catch (NumberFormatException ignored) {
                             ratingBox.setSelectedIndex(0);
                         }
@@ -371,40 +654,29 @@ public class CustomerPortal extends JFrame {
             }
         });
 
-        // Submit action
         submitBtn.addActionListener(e -> {
-            String comment  = feedbackArea.getText().trim();
+            String comment = feedbackArea.getText().trim();
             int ratingIndex = ratingBox.getSelectedIndex();
 
             if (comment.isEmpty()) {
-                JOptionPane.showMessageDialog(this,
-                    "Please enter your comment before submitting.",
-                    "Empty Comment", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Please enter your comment before submitting.", "Empty Comment", JOptionPane.WARNING_MESSAGE);
                 return;
             }
             if (ratingIndex == 0) {
-                JOptionPane.showMessageDialog(this,
-                    "Please select a rating before submitting.",
-                    "No Rating", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Please select a rating before submitting.", "No Rating", JOptionPane.WARNING_MESSAGE);
                 return;
             }
 
-            boolean success = feedbackDAO.submitFeedback(
-                selectedApptID[0], customerID, String.valueOf(ratingIndex), comment);
-
+            boolean success = feedbackDAO.submitFeedback(selectedApptID[0], customerID, String.valueOf(ratingIndex), comment);
             if (success) {
-                JOptionPane.showMessageDialog(this,
-                    "Feedback submitted successfully! Thank you.",
-                    "Submitted", JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Feedback submitted successfully! Thank you.", "Submitted", JOptionPane.INFORMATION_MESSAGE);
                 feedbackArea.setEnabled(false);
                 ratingBox.setEnabled(false);
                 submitBtn.setEnabled(false);
                 feedbackHint.setText("You have already submitted feedback for this appointment.");
                 feedbackHint.setForeground(new Color(40, 160, 80));
             } else {
-                JOptionPane.showMessageDialog(this,
-                    "Failed to submit. Please try again.",
-                    "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Failed to submit. Please try again.", "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
 
@@ -416,10 +688,8 @@ public class CustomerPortal extends JFrame {
 
     private Object[][] buildHistoryTableData(List<Appointment> history) {
         if (history == null || history.isEmpty()) return new Object[0][4];
-
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd MMM yyyy");
         Object[][] data = new Object[history.size()][4];
-
         for (int i = 0; i < history.size(); i++) {
             Appointment a = history.get(i);
             String techName = technicianDAO.getTechnicianName(a.getTechnicianID());
@@ -610,11 +880,8 @@ public class CustomerPortal extends JFrame {
 
     private void handleLogout() {
         int choice = JOptionPane.showConfirmDialog(
-            this,
-            "Are you sure you want to logout?",
-            "Logout",
-            JOptionPane.YES_NO_OPTION,
-            JOptionPane.WARNING_MESSAGE
+            this, "Are you sure you want to logout?",
+            "Logout", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE
         );
         if (choice == JOptionPane.YES_OPTION) dispose();
     }

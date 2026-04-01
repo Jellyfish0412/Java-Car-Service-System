@@ -1,1 +1,5 @@
-SI001|Normal Service (Oil Change + Filter)|Maintenance|1.5|Standard oil change and filter replacement
+SI001|P001|Normal|1.0|Basic oil change and filter replacement
+SI002|P002|Special|2.0|Full inspection, oil change, brake check, and fluid top-up
+SI003|P001|Normal|1.0|Tyre rotation and pressure check
+SI004|P002|Special|2.0|Engine diagnostic and full service
+SI005|P001|Normal|1.0|Air filter and cabin filter replacement
