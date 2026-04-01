@@ -5,3 +5,4 @@ A004|C002|ST002|TY002|T003|SI003|2026-01-15|13:00|15:00|Completed|Honda|Civic|WX
 A005|C001|ST001|TY001|T002|SI002|2026-05-01|11:00|12:00|Pending|Toyota|Camry|VKU 4821|Check air conditioning|Normal
 A006|C001|N/A|N/A|N/A|SI002|2026-07-28|09:00|N/A|Pending|xx99|ll00|][\\|hi|Special
 A007|C001|N/A|N/A|N/A|SI005|2026-04-01|10:00|N/A|Pending|Produa|Axia|KEE3143|N/A|Normal
+A008|C001|N/A|N/A|N/A|SI011|2026-04-06|09:00|N/A|Pending|xx|66|--|gd|Normal

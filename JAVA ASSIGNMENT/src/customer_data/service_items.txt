@@ -1,5 +1,20 @@
 SI001|P001|Normal|1.0|Basic oil change and filter replacement
-SI002|P002|Special|2.0|Full inspection, oil change, brake check, and fluid top-up
+SI002|P002|Special|3.0|Full inspection, oil change, brake check, and fluid top-up
 SI003|P001|Normal|1.0|Tyre rotation and pressure check
-SI004|P002|Special|2.0|Engine diagnostic and full service
+SI004|P002|Special|3.0|Engine diagnostic and full service
 SI005|P001|Normal|1.0|Air filter and cabin filter replacement
+SI006|P001|Normal|1.0|Windshield wiper blade replacement
+SI007|P002|Special|3.0|Transmission fluid flush and filter replacement
+SI008|P001|Normal|1.0|Battery check and terminal cleaning
+SI009|P002|Special|3.0|Full brake system overhaul and pad replacement
+SI010|P002|Special|3.0|Coolant flush and cooling system inspection
+SI011|P001|Normal|1.0|Spark plug inspection and replacement
+SI012|P001|Normal|1.0|Power steering fluid top-up and check
+SI013|P002|Special|3.0|Suspension and steering system inspection
+SI014|P001|Normal|1.0|Wheel alignment and balancing
+SI015|P002|Special|3.0|Air conditioning system service and regas
+SI016|P001|Normal|1.0|Exhaust system visual inspection
+SI017|P002|Special|3.0|Timing belt replacement and tensioner check
+SI018|P001|Normal|1.0|Headlight and tail light bulb replacement
+SI019|P002|Special|3.0|Fuel system cleaning and injector service
+SI020|P001|Normal|1.0|Exterior and underbody wash and inspection

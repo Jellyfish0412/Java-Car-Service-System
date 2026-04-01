@@ -29,4 +29,11 @@ public class Customer {
     public String getPhoneNumber() {return phoneNumber;}
     public String getAddress() {return address;}
     public LocalDate getRegisteredDate() {return registeredDate;}
+
+    public void setPassword(String password) {this.password = password;}
+    public void setName(String name) {this.name = name;}
+    public void setEmail(String email) {this.email = email;}
+    public void setPhone(String phoneNumber) {this.phoneNumber = phoneNumber;}
+    public void setAddress(String address) {this.address = address;}
+    public void setCustomerID(String customerID2) {this.customerID = customerID2;}    
 }

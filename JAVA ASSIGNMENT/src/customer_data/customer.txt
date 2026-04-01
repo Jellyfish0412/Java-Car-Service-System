@@ -1,2 +1,2 @@
-C001|123456|Tee Sze Ying|szeying@email.com|0123456789|123 Jalan Malanhi|2024-01-01
-C002|123456|Isac Lim|isac@gmail.com|0123456788|456 Jlan Jaya|2024-01-01
+C002|123456|Sze Ying|szeying@gmail.com|0123456788|123 Jalan Jaya|2024-01-01
+C002|123456|Jellyfish|isac@gmail.com|0123456788|123 Jalan Jaya|2024-01-01
